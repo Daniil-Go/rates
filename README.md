@@ -2,5 +2,5 @@
 
 Web server:
 * Receives current exchange rates once in a minute
-* Shares list of rates via GET request
-* Displays current rate of selected quote
+* Shares list of current USD rates via GET request
+* Displays current exchange rate of selected base and quote rates
