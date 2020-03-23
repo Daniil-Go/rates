@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -86,26 +85,33 @@ func (rates *Cache) searchHandler(wr http.ResponseWriter, req *http.Request) {
 	searchParams.Quote = req.URL.Query().Get("quote")
 
 	out := new(Response)
-	if strings.EqualFold(searchParams.Base, rates.Base) {
-		out.Base = searchParams.Base
-	} else {
-		fmt.Fprintf(wr, "The base \"%s\" is not correct", searchParams.Base)
-		return
-	}
 
 	rates.mu.Lock()
 	defer rates.mu.Unlock()
-	rate, ok := rates.Rates[searchParams.Quote]
+	base, ok := rates.Rates[searchParams.Base]
+	if !ok {
+		fmt.Fprintf(wr, "The base \"%s\" is not correct", searchParams.Base)
+		return
+	}
+	quote, ok := rates.Rates[searchParams.Quote]
 	if !ok {
 		fmt.Fprintf(wr, "The quote \"%s\" is not correct", searchParams.Quote)
 		return
 	}
 
-	out.Quote = searchParams.Quote
-	out.Rate = rate
+	out.BaseName = searchParams.Base
+	out.BaseRate = base
+	out.QuoteName = searchParams.Quote
+	out.QuoteRate = quote
+	out.exchange()
 
-	fmt.Fprintf(wr, "Base is \"%s\" \nQuote is \"%s\" \nRate is\"%v\"",
-		out.Base, out.Quote, out.Rate)
+	fmt.Fprintf(wr, "Base is \"%s\" \nQuote is \"%s\" \nRate is \"%v\"",
+		out.BaseName, out.QuoteName, out.Rate)
+}
+
+func (c *Response) exchange() {
+	c.Rate = 1 / c.BaseRate * c.QuoteRate
+	return
 }
 
 func sendError(wr http.ResponseWriter, statusCode int, err error) {
